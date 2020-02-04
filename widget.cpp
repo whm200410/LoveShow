@@ -4,10 +4,8 @@
 #include <QBitmap>
 #include <QPainter>
 #include <QMouseEvent>
-#include <QLabel>
 #include <QGraphicsPixmapItem>
 #include <QGraphicsScene>
-#include <QMovie>
 #include <QGraphicsProxyWidget>
 #include <QCoreApplication>
 #include <QGraphicsSimpleTextItem>
@@ -16,7 +14,6 @@
 namespace {
 
     const int c_nPixY       = 200;
-    //    const int c_nPixWidth   = 470;
     const int c_nLogoY      = 640;
     const int c_nTxtY       = 143;
     const int c_nPixHeight  = 390;
@@ -25,25 +22,25 @@ Widget::Widget(QWidget *parent)
     : QGraphicsView(parent)
 {
     this->setWindowFlag(Qt::WindowStaysOnTopHint);
-    QSize pixSize;
+
+    //load icons
     QPixmap pixmap;
     pixmap.load(":/icon/ht.png");
     QPixmap pixmapSnow;
     pixmapSnow.load(":/icon/snow.png");
 
 
-
-
+    //set mask
     pixmapSnow = pixmapSnow.scaled(QSize(24,24));
     resize(pixmap.size());
     setMask(pixmap.mask());
 
-    pixSize = pixmap.size();
-    m_sizePix = pixSize;
+    //create scene
+    m_sizePix = pixmap.size();
     setScene(new QGraphicsScene(0, 0, m_sizePix.width(), m_sizePix.height(), this));
 
 
-
+    //add heart image
     m_pixItem = new QGraphicsPixmapItem ();
     m_pixItem->setPixmap(pixmap);
     m_pixItem->setTransformationMode(Qt::SmoothTransformation);
@@ -51,6 +48,7 @@ Widget::Widget(QWidget *parent)
     m_pixItem->setZValue(0);
     scene()->addItem(m_pixItem);
 
+    //logo(hei hei)
     {
         m_txtLogo = new QGraphicsSimpleTextItem(tr("By Sheldon"));
         m_txtLogo->setBrush(QBrush(QColor(255, 255,255)));
@@ -67,8 +65,8 @@ Widget::Widget(QWidget *parent)
     }
 
 
-    //load images
 
+    //load txt
     {
         m_txtLove = 0;
         QString strDir = QCoreApplication::applicationDirPath();
@@ -89,30 +87,24 @@ Widget::Widget(QWidget *parent)
                 m_txtLove = new QGraphicsSimpleTextItem(m_vStrings[0]);
                 m_txtLove->setBrush(QBrush(QColor(0, 100,255)));
                 auto font = m_txtLove->font();
-//                font.setPixelSize(font.pixelSize() * 3);
                 font.setPointSize(font.pointSize() * 3);
                 m_txtLove->setFont(font);
-                auto rt = m_txtLove->boundingRect();
                 m_txtLove->setPos(m_sizePix.width(), c_nTxtY);
                 m_txtLove->setZValue(10);
- //               m_txtLove->setOpacity(0);
                 scene()->addItem(m_txtLove);
                 m_nIdxTxt = 0;
                 m_nTranTxt = 0;
             }
-
         }
-
-
     }
 
+    //load all images
     {
         QString strDir = QCoreApplication::applicationDirPath();
         strDir += QString("/images");
         QDir            logDir(strDir, "*.*");
 
         QFileInfoList   fList = logDir.entryInfoList();
-
 
         for(auto it = fList.rbegin(); it != fList.rend(); ++it)
         {
@@ -143,7 +135,7 @@ Widget::Widget(QWidget *parent)
         m_nDirection = 1;
     }
 
-
+    //for snow animation
     qsrand(QDateTime::currentDateTime().time().second());
     const int nMaxSnow = 50;
     for(int i = 0; i < nMaxSnow; ++i)
@@ -152,7 +144,7 @@ Widget::Widget(QWidget *parent)
         item.m_pix = new QGraphicsPixmapItem ();
         item.m_pix->setPixmap(pixmapSnow);
         item.m_pix->setTransformationMode(Qt::SmoothTransformation);
-        item.m_initX = qrand() % pixSize.width();
+        item.m_initX = qrand() % m_sizePix.width();
         item.m_initY = (qrand() % 100);
         item.m_speedY = qrand() % 30;
         item.m_speedX = item.m_speedY / 5;
@@ -164,10 +156,10 @@ Widget::Widget(QWidget *parent)
         scene()->addItem(item.m_pix);
     }
     this->setVerticalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
+    this->setHorizontalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
 
-
-    m_timer = new QTimer(this);
-    connect(m_timer, &QTimer::timeout, [&]()
+    m_timerSnow = new QTimer(this);
+    connect(m_timerSnow, &QTimer::timeout, [&]()
     {
         for(auto &v : m_pixSnow)
         {
@@ -183,10 +175,10 @@ Widget::Widget(QWidget *parent)
             }
         }
     });
-    m_timer->start(50);
+    m_timerSnow->start(50);
 
-    m_timerImg = new QTimer(this);
-    connect(m_timerImg, &QTimer::timeout, [&]()
+    m_timerAnim = new QTimer(this);
+    connect(m_timerAnim, &QTimer::timeout, [&]()
     {
         if(m_vImgs.size())
         {
@@ -229,29 +221,14 @@ Widget::Widget(QWidget *parent)
                 }
                 m_txtLove->setText(m_vStrings[m_nIdxTxt]);
                 auto rt = m_txtLove->boundingRect();
-                int nTxtX = m_sizePix.width() / 2 - rt.width() / 2;
                 m_txtLove->setPos(m_sizePix.width(), c_nTxtY);
 
             }
 
         }
 
-
-
     });
-    m_timerImg->start(100);
-
-
-    if(m_txtLove)
-    {
-        m_timerTxt = new QTimer(this);
-        connect(m_timerTxt, &QTimer::timeout, [&]()
-        {
-
-        });
- //       m_timerTxt->start(100);
-    }
-
+    m_timerAnim->start(100);
 }
 
 Widget::~Widget()
